@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistent Hashing Visualization</title>
+    <style>
+        #ring {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 500px;
+        }
+        .node {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-color: lightblue;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Consistent Hashing Visualization</h1>
+    <div>
+        <input type="text" id="nodeName" placeholder="Node Name">
+        <button onclick="addNode()">Add Node</button>
+        <button onclick="removeNode()">Remove Node</button>
+    </div>
+    <div id="ring"></div>
+
+    <script>
+        async function fetchState() {
+            const response = await fetch('/state');
+            const state = await response.json();
+            return state.nodes;
+        }
+
+        function drawRing(nodes) {
+            const ring = document.getElementById('ring');
+            ring.innerHTML = '';
+            const radius = 200;
+            const centerX = ring.clientWidth / 2;
+            const centerY = ring.clientHeight / 2;
+            const angleStep = (2 * Math.PI) / nodes.length;
+
+            nodes.forEach((node, index) => {
+                const angle = index * angleStep;
+                const x = centerX + radius * Math.cos(angle) - 50;
+                const y = centerY + radius * Math.sin(angle) - 50;
+                const nodeElement = document.createElement('div');
+                nodeElement.className = 'node';
+                nodeElement.style.left = `${x}px`;
+                nodeElement.style.top = `${y}px`;
+                nodeElement.innerText = node;
+                ring.appendChild(nodeElement);
+            });
+        }
+
+        async function updateRing() {
+            const nodes = await fetchState();
+            drawRing(nodes);
+        }
+
+        async function addNode() {
+            const nodeName = document.getElementById('nodeName').value;
+            if (nodeName) {
+                await fetch(`/add?node=${nodeName}`);
+                updateRing();
+            }
+        }
+
+        async function removeNode() {
+            const nodeName = document.getElementById('nodeName').value;
+            if (nodeName) {
+                await fetch(`/remove?node=${nodeName}`);
+                updateRing();
+            }
+        }
+
+        updateRing();
+    </script>
+</body>
+</html>
