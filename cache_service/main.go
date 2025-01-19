@@ -33,6 +33,7 @@ func (c *Cache) Get(key string) (string, bool) {
 }
 
 func main() {
+    fmt.Println("Cache service started")
     cache := NewCache()
     hash := consistent.New()
     hash.Add("cache1")

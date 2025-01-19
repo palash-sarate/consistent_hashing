@@ -12,6 +12,7 @@ Write-Output "Current context: $currentContext"
 docker build -t cache-service:latest .
 
 # add the docker image to minikube
+minikube image rm cache-service:latest
 minikube image load cache-service:latest
 
 # Initialize Terraform
