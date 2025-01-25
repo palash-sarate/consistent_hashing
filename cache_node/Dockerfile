@@ -2,11 +2,11 @@ FROM golang:1.23.5 AS build-stage
 
 WORKDIR /app
 
-COPY ./cache_node/go.mod ./cache_node/go.sum ./
+COPY go.mod ./
 
 RUN go mod download
 
-COPY ./cache_node/*.go ./
+COPY ./*.go ./
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./cache_node
 
