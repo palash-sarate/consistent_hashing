@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
-	"io/ioutil"
+	// "io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
     "k8s.io/client-go/tools/clientcmd"
     "github.com/joho/godotenv"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -238,32 +239,36 @@ func main() {
 }
 
 func setHandlers() {
-	http.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
-		var kv map[string]string
-		json.NewDecoder(r.Body).Decode(&kv)
-		for k, v := range kv {
-			nodes := ring.GetNodes(k, 1)
-			for _, node := range nodes {
-				storeValueOnNode(node, k, v)
-			}
-		}
-		w.WriteHeader(http.StatusOK)
-	})
+    http.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
+        var kv map[string]string
+        json.NewDecoder(r.Body).Decode(&kv)
+        for k, v := range kv {
+            nodes := ring.GetNodes(k, 1)
+            for _, node := range nodes {
+                storeValueOnNode(node, k, v)
+                log.Printf("Stored key: %s, value: %s on node: %s\n", k, v, node)
+            }
+        }
+        w.WriteHeader(http.StatusOK)
+        log.Println("Set operation successful")
+    })
 
-	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-		key := r.URL.Query().Get("key")
-		nodes := ring.GetNodes(key, 1)
-		for _, node := range nodes {
-			url := fmt.Sprintf("%s/get?key=%s", node, key)
-			resp, err := http.Get(url)
-			if err == nil && resp.StatusCode == http.StatusOK {
-				body, _ := ioutil.ReadAll(resp.Body)
-				w.Write(body)
-				return
-			}
-		}
-		http.NotFound(w, r)
-	})
+    http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+        key := r.URL.Query().Get("key")
+        nodes := ring.GetNodes(key, 1)
+        log.Printf("Retrieving key: %s from nodes: %s\n", key, nodes)
+        for _, node := range nodes {
+            url := fmt.Sprintf("%s/get?key=%s", node, key)
+            resp, err := http.Get(url)
+            if err == nil && resp.StatusCode == http.StatusOK {
+                body, _ := io.ReadAll(resp.Body)
+                w.Write(body)
+                log.Printf("Retrieved key: %s from node: %s\n", key, node)
+                return
+            }
+        }
+        http.NotFound(w, r)
+    })
 
 	http.HandleFunc("/nodes", func(w http.ResponseWriter, r *http.Request) {
 		ring.mu.RLock()

@@ -12,6 +12,8 @@ try {
 } catch {
     Write-Host "Failed to delete deployment cache-node and service: $_"
 }
+# wait for the deployment to be deleted
+Start-Sleep -Seconds 10
 # add the docker image to minikube
 minikube image rm cache-service:latest
 minikube image load cache-service:latest
