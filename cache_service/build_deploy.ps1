@@ -6,8 +6,9 @@ if (-not (minikube status --format '{{.Host}}' | Select-String 'Running')) {
 docker build -t cache-service:latest .
 # delete the cache-node deployment
 try {
-    kubectl delete deployment cache-node -n ch-demo
-    kubectl delete deployment cache-service -n ch-demo
+    kubectl delete deployment cache-node -n ch-demo | Out-Null
+    kubectl delete deployment cache-service -n ch-demo | Out-Null
+    kubectl delete service cache-service -n ch-demo | Out-Null
 } catch {
     Write-Host "Failed to delete deployment cache-node and service: $_"
 }
@@ -24,4 +25,4 @@ terraform init
 terraform apply -auto-approve
 
 # Return to the original directory
-Pop-Location
+Push-Location -Path "./cache_service"

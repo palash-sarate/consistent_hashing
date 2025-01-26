@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
+    "k8s.io/client-go/tools/clientcmd"
+    "github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +25,7 @@ import (
 // var isDebug = true
 var clientset *kubernetes.Clientset
 var ring *HashRing
+var isDebug bool
 
 type HashRing struct {
 	nodes    []int
@@ -94,17 +97,26 @@ func homeDir() string {
 }
 
 func k8setup() *kubernetes.Clientset {
-	// Load the kubeconfig file to connect to the cluster
-	kubeconfig := filepath.Join(
-		homeDir(), ".kube", "config",
-	)
-	// fmt.Println(kubeconfig)
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		log.Fatalf("Error building kubeconfig: %v", err)
+    isDebug := os.Getenv("DEBUG") == "true"
+	var config *rest.Config
+	var err error
+	if isDebug {
+		fmt.Println("Not inside a cluster-Home dir: ", homeDir())
+		kubeconfig := filepath.Join(
+			homeDir(), ".kube", "config",
+		)
+		if kubeconfig == "" {
+			log.Fatalf("Error constructing kubeconfig file path")
+		}
+		// fmt.Println(kubeconfig)
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	} else {
+		// Load the kubeconfig file to connect to the cluster
+		config, err = rest.InClusterConfig()
 	}
-
+    if err != nil {
+        log.Fatalf("Error building kubeconfig: %v", err)
+    }
 	// Create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -196,6 +208,12 @@ func storeValueOnNode(node, key, value string) {
 }
 
 func main() {
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatal("Error loading .env file:", err)
+    }
+	isDebug = os.Getenv("DEBUG") == "true"
+
 	clientset = k8setup()
 	nodes, err := discoverNodes("ch-demo", "app=cache-node")
 	if err != nil {
@@ -226,7 +244,7 @@ func setHandlers() {
 		for k, v := range kv {
 			nodes := ring.GetNodes(k, 1)
 			for _, node := range nodes {
-                storeValueOnNode(node, k, v)
+				storeValueOnNode(node, k, v)
 			}
 		}
 		w.WriteHeader(http.StatusOK)

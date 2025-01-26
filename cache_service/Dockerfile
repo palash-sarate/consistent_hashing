@@ -22,6 +22,12 @@ WORKDIR /
 
 COPY --from=build-stage ./app/cache_service ./cache_service
 
+# Copy the .env file
+COPY .env .env
+
+# Copy the static directory
+COPY static /static
+
 EXPOSE 8080
 
 USER nonroot:nonroot
