@@ -15,7 +15,7 @@ resource "kubernetes_deployment" "cache_service" {
   }
 
   spec {
-    replicas = 3
+    replicas = 1
 
     selector {
       match_labels = {
@@ -103,3 +103,23 @@ resource "kubernetes_deployment" "cache_nodes" {
     }
   }
 }
+
+# resource "kubernetes_service" "cache_node" {
+#   metadata {
+#     name      = "cache-node"
+#     namespace = kubernetes_namespace.ch-demo.metadata[0].name
+#   }
+
+#   spec {
+#     selector = {
+#       app = "cache-node"
+#     }
+
+#     port {
+#       port        = 80
+#       target_port = 8080
+#     }
+
+#     type = "LoadBalancer"
+#   }
+# }
