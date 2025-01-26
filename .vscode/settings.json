@@ -1,5 +1,7 @@
 {
     "cSpell.words": [
+        "clientset",
+        "kubeconfig",
         "stathat"
     ]
 }

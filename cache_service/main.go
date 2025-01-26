@@ -20,6 +20,8 @@ import (
     metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var isDebug = true
+
 type HashRing struct {
     nodes       []int
     nodeMap     map[int]string
@@ -94,6 +96,8 @@ func k8setup() {
         kubeconfig := filepath.Join(
             homeDir(), ".kube", "config",
         )
+        // fmt.Println(kubeconfig)
+
         config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
         if err != nil {
             log.Fatalf("Error building kubeconfig: %v", err)
@@ -106,7 +110,7 @@ func k8setup() {
         }
     
         // Discover pods of another deployment
-        pods, err := discoverPods(clientset, "default", "app=cache-node")
+        pods, err := discoverPods(clientset, "ch-demo", "app=cache-service")
         if err != nil {
             log.Fatalf("Error discovering pods: %v", err)
         }
@@ -115,11 +119,13 @@ func k8setup() {
             fmt.Println(pod)
         }
 }
+
 // discoverPods lists the pods in a given namespace with a specific label selector
 func discoverPods(clientset *kubernetes.Clientset, namespace, labelSelector string) ([]string, error) {
     pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
         LabelSelector: labelSelector,
     })
+    fmt.Println(pods)
     if err != nil {
         return nil, err
     }
@@ -200,8 +206,14 @@ func storeValueOnNode(node, key, value string) {
 func main() {
     ring := NewHashRing(3)
     go monitorNodes(ring)
+    setHandlers(ring)
+    k8setup()
 
-    http.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
+    http.ListenAndServe(":8080", nil)
+}
+
+func setHandlers(ring *HashRing) {
+        http.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
         var kv map[string]string
         json.NewDecoder(r.Body).Decode(&kv)
         for k, v := range kv {
@@ -259,6 +271,4 @@ func main() {
     })
 
     http.Handle("/", http.FileServer(http.Dir("./static")))
-
-    http.ListenAndServe(":8080", nil)
 }
